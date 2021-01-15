@@ -41,3 +41,12 @@ for list in months:
 # Save the monthly value into a json file
 with open('seattlemonthly.json', 'w') as file:
     json.dump(monthly_prcp, file)
+
+
+# Calculate the sum of the precipitation over the whole year
+total = sum(monthly_prcp)
+print(total)
+monthly_percent = [x / total for x in monthly_prcp]
+# Calculate the relative precipitation per month (percentage compared to the precipitation over the whole year)
+print(monthly_percent)
+
