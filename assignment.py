@@ -8,45 +8,50 @@ with open('stations.csv') as file:
         Location, State, Station = line.strip().split(',')
         csv_data.append({'Location': Location, "State": State, 'Station': Station})
 
-# Find the code for Seattle
-code_seattle = csv_data[1]['Station']
-print(code_seattle)
+# Creating a directory of the locations and define codes and states
+d = {}
+for dict in csv_data:
+    d[dict['Location']] = {'station':dict['Station'], 'state':dict['State']}
 
 # Load the precipitation file
 with open('precipitation.json') as file:
     precipitation = json.load(file)
 
-# Create a directory with only data from Seattle
-seattle_prcp = []
-for dict in precipitation:
-    if code_seattle == dict['station']:
-        seattle_prcp.append(dict.copy())
-#print(seattle_prcp)
+##create a list with area codes
+codes = []
+for dict in d:
+    codes.append(d[dict]['station'])
 
-# Create a list of lists grouped by month
-months = [[], [], [], [], [], [], [], [], [], [], [], []]
-value = 0
-for dict in seattle_prcp:
-    for i in range(12):
-        if f"-{i:02d}-" in dict['date']:
-            months[i-1].append(dict['value'])
-#print(months)
+## Add the lists of monthly precipitations into the defined directory.
+for item in codes:
+    location_prcp = []
+    for dict in precipitation: # Filter by location
+        if item == dict['station']:
+            location_prcp.append(dict.copy())
+    months = [[], [], [], [], [], [], [], [], [], [], [], []]
+    for dict in location_prcp: # Create a list of lists, where every list is one month
+        for i in range(12):
+            if f"-{i+1:02d}-" in dict['date']:
+                months[i].append(dict['value'])
+    monthly_prcp = []
+    for list in months: # Summarise the months into one integer
+        monthly_prcp.append(sum(list))
+    for dict in d: # Add the list of monthly integers into the dictionary
+        if d[dict]['station'] == item:
+            d[dict]['totalMonthlyPrecipitation'] = monthly_prcp
 
-# Summarize the lists into one total variable
-monthly_prcp = []
-for list in months:
-    monthly_prcp.append(sum(list))
-#print(monthly_prcp)
+# Calculating relative monthly prcp, total prcp per location and defining and calculating yearly total prcp
+yearly_total = 0
+for dict in d:
+    total = sum(d[dict]['totalMonthlyPrecipitation'])
+    d[dict]['relativeMonthlyPrecipitation'] = [x / total for x in d[dict]['totalMonthlyPrecipitation']]
+    d[dict]['totalYearlyPrecipitation'] = total
+    yearly_total += total
 
-# Save the monthly value into a json file
-with open('seattlemonthly.json', 'w') as file:
-    json.dump(monthly_prcp, file)
+# Calculate realtive yearly prcp per location
+for dict in d:
+    d[dict]['relativeYearlyPrecipitation'] = d[dict]['totalYearlyPrecipitation'] / yearly_total
 
-
-# Calculate the sum of the precipitation over the whole year
-total = sum(monthly_prcp)
-print(total)
-monthly_percent = [x / total for x in monthly_prcp]
-# Calculate the relative precipitation per month (percentage compared to the precipitation over the whole year)
-print(monthly_percent)
-
+# Save the dictionary into a json file
+with open('result.json', 'w') as file:
+    json.dump(d, file, indent = 4)
